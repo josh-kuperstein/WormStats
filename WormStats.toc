@@ -1,0 +1,14 @@
+## Interface: 16016, 16001, 16000
+## X-Interface-Note: Forever is versioned 1.60.x (Classic lineage) but runs the
+## Mainline 12.1.x API surface. The TOC number tracks the CLIENT VERSION, which
+## GetInterfaceVersion formats as %d%02d%02d -- so 1.60.1 is 16001, 1.60.16 is
+## 16016. Confirm your build with: /dump select(4, GetBuildInfo())
+## Title: Worm Stats
+## Notes: A single configurable line of character stats. Per-character stat selection and order.
+## Author: Wormdirt
+## Version: 0.1.0
+## SavedVariablesPerCharacter: WormStatsCharDB
+## IconTexture: Interface\Icons\Ability_Hunter_Pet_Worm
+
+WormStats.lua
+Config.lua
