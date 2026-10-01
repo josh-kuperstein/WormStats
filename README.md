@@ -40,7 +40,7 @@ New characters start with buff count, spell hit, spell crit, spell power and has
 | HIT | Spell hit, or melee hit |
 | CRIT | Spell crit (best school), or melee crit |
 | SP | Spell power (best school) |
-| SHADOW / FIRE | Shadow or fire spell power |
+| SHADOW / FIRE / FROST / HOLY / NATURE / ARCANE | Spell power for a single school |
 | HEAL | Healing power |
 | HASTE | Haste |
 | MP5 | Mana regen while casting, per 5 seconds |

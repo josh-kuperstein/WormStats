@@ -114,6 +114,22 @@ WS.STATS = {
         return GetSpellBonusDamage and Int(GetSpellBonusDamage(3))
     end },
 
+    frost = { label = "FROST", name = "Frost spell power", get = function()
+        return GetSpellBonusDamage and Int(GetSpellBonusDamage(5))
+    end },
+
+    holy = { label = "HOLY", name = "Holy spell power", get = function()
+        return GetSpellBonusDamage and Int(GetSpellBonusDamage(2))
+    end },
+
+    nature = { label = "NATURE", name = "Nature spell power", get = function()
+        return GetSpellBonusDamage and Int(GetSpellBonusDamage(4))
+    end },
+
+    arcane = { label = "ARCANE", name = "Arcane spell power", get = function()
+        return GetSpellBonusDamage and Int(GetSpellBonusDamage(7))
+    end },
+
     haste = { label = "HASTE", name = "Haste", get = function()
         return GetHaste and Pct(GetHaste())
     end },
@@ -165,7 +181,8 @@ local STATS = WS.STATS
 -- Registry order = order new stats get appended in for existing characters.
 WS.ALL_KEYS = { "buffs", "spellhit", "spellcrit", "sp", "shadow", "fire", "haste", "mp5",
                 "meleehit", "meleecrit", "ap", "dmg", "int", "spi", "sta",
-                "heal", "rap", "rangedcrit", "armor", "dodge", "parry", "block", "str", "agi" }
+                "heal", "rap", "rangedcrit", "armor", "dodge", "parry", "block", "str", "agi",
+                "frost", "holy", "nature", "arcane" }
 
 WS.DEFAULT_ENABLED = { buffs = true, spellhit = true, spellcrit = true, sp = true, haste = true }
 
