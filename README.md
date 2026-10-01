@@ -68,4 +68,6 @@ Worm Stats is built for the Forever client (versions 1.60.x), which uses the mod
 
 ## Releasing
 
-Releases are built by GitHub Actions. To publish one, set `## Version:` in `WormStats.toc` to the new version, commit, then push a matching tag, such as `v0.1.1`. The workflow checks that the tag matches the TOC version, zips the addon and creates the GitHub release.
+Changes reach `main` through pull requests. Every merge to `main` runs the release workflow, which reads `## Version:` from `WormStats.toc`. If there's no tag for that version yet, it tags the merge, zips the addon and publishes a GitHub release with notes generated from the merged PRs. If the tag already exists, nothing happens.
+
+So to ship a change, bump the version in the same PR: the minor number for new features (such as `0.2.0`) and the patch number for fixes. Changes that shouldn't ship yet, or don't touch the addon (like README edits), leave the version alone.
