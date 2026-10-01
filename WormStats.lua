@@ -137,12 +137,35 @@ WS.STATS = {
     int = { label = "INT", name = "Intellect", get = function() return Int(select(2, UnitStat("player", 4))) end },
     spi = { label = "SPI", name = "Spirit", get = function() return Int(select(2, UnitStat("player", 5))) end },
     sta = { label = "STA", name = "Stamina", get = function() return Int(select(2, UnitStat("player", 3))) end },
+
+    heal = { label = "HEAL", name = "Healing power", get = function()
+        return GetSpellBonusHealing and Int(GetSpellBonusHealing())
+    end },
+
+    rap = { label = "RAP", name = "Ranged attack power", get = function()
+        local base, pos, neg = UnitRangedAttackPower("player")
+        return Int(base + pos + neg)
+    end },
+
+    rangedcrit = { label = "RCRIT", name = "Ranged crit", get = function()
+        return GetRangedCritChance and Pct(GetRangedCritChance())
+    end },
+
+    armor = { label = "ARMOR", name = "Armor", get = function() return Int(select(2, UnitArmor("player"))) end },
+
+    dodge = { label = "DODGE", name = "Dodge", get = function() return GetDodgeChance and Pct(GetDodgeChance()) end },
+    parry = { label = "PARRY", name = "Parry", get = function() return GetParryChance and Pct(GetParryChance()) end },
+    block = { label = "BLOCK", name = "Block", get = function() return GetBlockChance and Pct(GetBlockChance()) end },
+
+    str = { label = "STR", name = "Strength", get = function() return Int(select(2, UnitStat("player", 1))) end },
+    agi = { label = "AGI", name = "Agility", get = function() return Int(select(2, UnitStat("player", 2))) end },
 }
 local STATS = WS.STATS
 
 -- Registry order = order new stats get appended in for existing characters.
 WS.ALL_KEYS = { "buffs", "spellhit", "spellcrit", "sp", "shadow", "fire", "haste", "mp5",
-                "meleehit", "meleecrit", "ap", "dmg", "int", "spi", "sta" }
+                "meleehit", "meleecrit", "ap", "dmg", "int", "spi", "sta",
+                "heal", "rap", "rangedcrit", "armor", "dodge", "parry", "block", "str", "agi" }
 
 WS.DEFAULT_ENABLED = { buffs = true, spellhit = true, spellcrit = true, sp = true, haste = true }
 
@@ -281,6 +304,9 @@ f:SetScript("OnEvent", function(_, event, ...)
         TryEvent("UNIT_AURA", "player")
         TryEvent("UNIT_STATS", "player")
         TryEvent("UNIT_ATTACK_POWER", "player")
+        TryEvent("UNIT_RANGED_ATTACK_POWER", "player")
+        TryEvent("UNIT_RANGEDDAMAGE", "player")
+        TryEvent("UNIT_RESISTANCES", "player")
         TryEvent("UNIT_DAMAGE", "player")
         TryEvent("UNIT_ATTACK_SPEED", "player")
         TryEvent("UNIT_SPELL_HASTE", "player")
