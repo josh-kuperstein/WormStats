@@ -1,11 +1,20 @@
 name: Release
 
+# Every merge to main runs this. The version in WormStats.toc is the source of
+# truth: if no tag exists for it yet, tag this commit and publish a release.
+# Merges that don't bump the version (docs, chores) do nothing.
+
 on:
   push:
-    tags: ["v*"]
+    branches: [main]
+  workflow_dispatch:
 
 permissions:
   contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
 
 jobs:
   release:
@@ -13,15 +22,27 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - name: Check .toc version matches tag
+      - name: Read version from .toc
+        id: version
         run: |
-          toc=$(sed -n 's/^## Version: *//p' WormStats.toc | tr -d '\r')
-          [ "$toc" = "${GITHUB_REF_NAME#v}" ] || { echo "::error::tag $GITHUB_REF_NAME != toc $toc"; exit 1; }
+          ver=$(sed -n 's/^## Version: *//p' WormStats.toc | tr -d '\r')
+          echo "$ver" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$' || { echo "::error::bad version in WormStats.toc: '$ver'"; exit 1; }
+          tag="v$ver"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          if git ls-remote --exit-code --tags origin "refs/tags/$tag" >/dev/null; then
+            echo "$tag already released; nothing to do."
+            echo "new=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "new=true" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Build zip
-        run: git archive --format=zip --prefix=WormStats/ -o "WormStats-$GITHUB_REF_NAME.zip" HEAD WormStats.toc WormStats.lua Config.lua
+        if: steps.version.outputs.new == 'true'
+        run: git archive --format=zip --prefix=WormStats/ -o "WormStats-${{ steps.version.outputs.tag }}.zip" HEAD WormStats.toc WormStats.lua Config.lua
 
       - name: Create release
+        if: steps.version.outputs.new == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "$GITHUB_REF_NAME" "WormStats-$GITHUB_REF_NAME.zip" --title "$GITHUB_REF_NAME" --generate-notes
+          TAG: ${{ steps.version.outputs.tag }}
+        run: gh release create "$TAG" "WormStats-$TAG.zip" --target "$GITHUB_SHA" --title "$TAG" --generate-notes
