@@ -212,6 +212,9 @@ function WS.ApplyLayout()
     line.bg:SetShown(not db.locked)
 end
 
+-- Report each failing stat once per session so a "?" comes with a reason.
+local reported = {}
+
 function WS.Render()
     local db = WormStatsCharDB
     if not db then return end
@@ -219,6 +222,10 @@ function WS.Render()
     for _, k in ipairs(db.order) do
         if db.enabled[k] then
             local ok, v = pcall(STATS[k].get)
+            if not ok and not reported[k] then
+                reported[k] = true
+                Print(STATS[k].name .. " failed: " .. tostring(v))
+            end
             parts[#parts + 1] = STATS[k].label .. " " .. ((ok and v) or "?")
         end
     end
@@ -241,12 +248,17 @@ end
 
 local f = CreateFrame("Frame")
 
--- Not every event exists on every client build; register defensively.
+-- Not every event exists on every client build; register defensively, but
+-- say so when one is missing, since its stats would silently stop updating.
 local function TryEvent(name, unit)
+    local ok, err
     if unit then
-        pcall(f.RegisterUnitEvent, f, name, unit)
+        ok, err = pcall(f.RegisterUnitEvent, f, name, unit)
     else
-        pcall(f.RegisterEvent, f, name)
+        ok, err = pcall(f.RegisterEvent, f, name)
+    end
+    if not ok then
+        Print("could not register " .. name .. ": " .. tostring(err))
     end
 end
 
