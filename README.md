@@ -52,7 +52,9 @@ New characters start with buff count, spell hit, spell crit, spell power and has
 | DODGE / PARRY / BLOCK | Dodge, parry and block chance |
 | STR / AGI / STA / INT / SPI | Primary stats |
 
-## If something shows "?"
+## If something shows "--" or "?"
+
+A gray `--` means the game is hiding that stat from addons for now. Some situations lock stats this way. Worm Stats keeps checking and shows the number again as soon as the game allows it.
 
 A stat shows `?` when the game couldn't give the addon a value for it. The first time that happens to a stat in a session, Worm Stats prints the reason in chat, starting with `Worm Stats: <stat> failed:`. If you report a problem, please include that line.
 

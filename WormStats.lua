@@ -19,6 +19,7 @@ local WS = WormStats
 ---------------------------------------------------------------------------
 
 local RENDER_DELAY = 0.1   -- seconds to coalesce a burst of events into one redraw
+local LOCKED_RETRY = 2     -- seconds between redraws while any stat is locked
 
 ---------------------------------------------------------------------------
 -- Helpers
@@ -29,8 +30,22 @@ function WS.Print(msg)
 end
 local Print = WS.Print
 
+-- In restricted content the client hands addons "secret" numbers: holding
+-- one is fine, but arithmetic or comparison on it throws. Getters check with
+-- Secret() and return LOCKED instead, and Render retries until it clears.
+local LOCKED = "|cff808080--|r"
+
+local function Secret(...)
+    if not issecretvalue then return false end
+    for i = 1, select("#", ...) do
+        if issecretvalue((select(i, ...))) then return true end
+    end
+    return false
+end
+
 local function Pct(v)
     if not v then return nil end
+    if Secret(v) then return LOCKED end
     if math.abs(v - math.floor(v + 0.5)) < 0.005 then
         return string.format("%d%%", math.floor(v + 0.5))
     end
@@ -39,6 +54,7 @@ end
 
 local function Int(v)
     if not v then return nil end
+    if Secret(v) then return LOCKED end
     return string.format("%d", math.floor(v + 0.5))
 end
 
@@ -50,16 +66,27 @@ local function BestOverSchools(fn)
     local best
     for _, s in ipairs(SCHOOLS) do
         local v = fn(s)
+        if Secret(v) then return v end   -- can't compare it; Pct/Int show LOCKED
         if v and (not best or v > best) then best = v end
     end
     return best
 end
 
+-- Returns the count, or LOCKED while the client is hiding auras. Unlike stats,
+-- the aura API doesn't hand back a secret value; it refuses outright.
 local function CountBuffs()
+    if C_Secrets and C_Secrets.ShouldAurasBeSecret and C_Secrets.ShouldAurasBeSecret() then
+        return LOCKED
+    end
     local n = 0
     if C_UnitAuras and C_UnitAuras.GetAuraDataByIndex then
         for i = 1, 255 do
-            if not C_UnitAuras.GetAuraDataByIndex("player", i, "HELPFUL") then break end
+            local ok, aura = pcall(C_UnitAuras.GetAuraDataByIndex, "player", i, "HELPFUL")
+            if not ok then
+                if tostring(aura):find("secret") then return LOCKED end
+                error(aura, 0)
+            end
+            if not aura then break end
             n = i
         end
     elseif UnitBuff then
@@ -76,7 +103,7 @@ end
 ---------------------------------------------------------------------------
 
 WS.STATS = {
-    buffs = { label = "BUFFS", name = "Buff count", get = function() return tostring(CountBuffs()) end },
+    buffs = { label = "BUFFS", name = "Buff count", get = function() return tostring(CountBuffs()) end },   -- LOCKED passes through tostring
 
     spellhit = { label = "HIT", name = "Spell hit", get = function()
         if GetSpellHitModifier then
@@ -137,16 +164,19 @@ WS.STATS = {
     mp5 = { label = "MP5", name = "Mana regen while casting (per 5s)", get = function()
         if not GetManaRegen then return nil end
         local _, casting = GetManaRegen()
+        if Secret(casting) then return LOCKED end
         return casting and Int(casting * 5)
     end },
 
     ap = { label = "AP", name = "Melee attack power", get = function()
         local base, pos, neg = UnitAttackPower("player")
+        if Secret(base, pos, neg) then return LOCKED end
         return Int(base + pos + neg)
     end },
 
     dmg = { label = "DMG", name = "Physical damage modifier", get = function()
         local mult = select(7, UnitDamage("player"))
+        if Secret(mult) then return LOCKED end
         return mult and Pct(mult * 100)
     end },
 
@@ -160,6 +190,7 @@ WS.STATS = {
 
     rap = { label = "RAP", name = "Ranged attack power", get = function()
         local base, pos, neg = UnitRangedAttackPower("player")
+        if Secret(base, pos, neg) then return LOCKED end
         return Int(base + pos + neg)
     end },
 
@@ -255,10 +286,19 @@ end
 -- Report each failing stat once per session so a "?" comes with a reason.
 local reported = {}
 
+-- Stat events can't be counted on to fire when a restriction lifts, so while
+-- anything shows LOCKED, keep redrawing on a timer until the numbers return.
+local retryPending = false
+local function RetryLocked()
+    if retryPending then return end
+    retryPending = true
+    C_Timer.After(LOCKED_RETRY, function() retryPending = false; WS.Render() end)
+end
+
 function WS.Render()
     local db = WormStatsCharDB
     if not db then return end
-    local parts = {}
+    local parts, anyLocked = {}, false
     for _, k in ipairs(db.order) do
         if db.enabled[k] then
             local ok, v = pcall(STATS[k].get)
@@ -266,12 +306,14 @@ function WS.Render()
                 reported[k] = true
                 Print(STATS[k].name .. " failed: " .. tostring(v))
             end
+            if ok and v == LOCKED then anyLocked = true end
             parts[#parts + 1] = STATS[k].label .. " " .. ((ok and v) or "?")
         end
     end
     line.text:SetText(table.concat(parts, db.spacing))
     line:SetWidth(math.max(line.text:GetStringWidth() + 16, 60))
     line:SetHeight(line.text:GetStringHeight() + 8)
+    if anyLocked then RetryLocked() end
 end
 
 -- Coalesce bursts of events into one redraw.
