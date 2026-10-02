@@ -72,11 +72,21 @@ local function BestOverSchools(fn)
     return best
 end
 
+-- Returns the count, or LOCKED while the client is hiding auras. Unlike stats,
+-- the aura API doesn't hand back a secret value; it refuses outright.
 local function CountBuffs()
+    if C_Secrets and C_Secrets.ShouldAurasBeSecret and C_Secrets.ShouldAurasBeSecret() then
+        return LOCKED
+    end
     local n = 0
     if C_UnitAuras and C_UnitAuras.GetAuraDataByIndex then
         for i = 1, 255 do
-            if not C_UnitAuras.GetAuraDataByIndex("player", i, "HELPFUL") then break end
+            local ok, aura = pcall(C_UnitAuras.GetAuraDataByIndex, "player", i, "HELPFUL")
+            if not ok then
+                if tostring(aura):find("secret") then return LOCKED end
+                error(aura, 0)
+            end
+            if not aura then break end
             n = i
         end
     elseif UnitBuff then
@@ -93,7 +103,7 @@ end
 ---------------------------------------------------------------------------
 
 WS.STATS = {
-    buffs = { label = "BUFFS", name = "Buff count", get = function() return tostring(CountBuffs()) end },
+    buffs = { label = "BUFFS", name = "Buff count", get = function() return tostring(CountBuffs()) end },   -- LOCKED passes through tostring
 
     spellhit = { label = "HIT", name = "Spell hit", get = function()
         if GetSpellHitModifier then
