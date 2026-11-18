@@ -5,7 +5,7 @@
 A World of Warcraft addon that shows your character's stats on a single line of text you can put anywhere on screen. You choose which stats appear and in what order, and each character keeps its own setup.
 
 ```
-BUFFS 12   HIT 3%   CRIT 7.42%   SP 412   HASTE 2.10%
+BUFFS 12   HIT 3.0%   CRIT 7.4%   SP 412   HASTE 2.1%
 ```
 
 The line updates by itself when your gear, buffs or talents change.

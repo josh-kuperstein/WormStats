@@ -46,10 +46,7 @@ end
 local function Pct(v)
     if not v then return nil end
     if Secret(v) then return LOCKED end
-    if math.abs(v - math.floor(v + 0.5)) < 0.005 then
-        return string.format("%d%%", math.floor(v + 0.5))
-    end
-    return string.format("%.2f%%", v)
+    return string.format("%.1f%%", v)   -- one decimal, like the character sheet
 end
 
 local function Int(v)
@@ -70,6 +67,16 @@ local function BestOverSchools(fn)
         if v and (not best or v > best) then best = v end
     end
     return best
+end
+
+-- Hit as the character sheet shows it: talents and buffs (the modifier) plus
+-- hit rating from gear. Either part can be missing on a given client.
+local function HitTotal(modFn, rating)
+    local mod = modFn and modFn()
+    local bonus = GetCombatRatingBonus and rating and GetCombatRatingBonus(rating)
+    if Secret(mod, bonus) then return LOCKED end
+    if not mod and not bonus then return nil end
+    return Pct((mod or 0) + (bonus or 0))
 end
 
 -- Returns the count, or LOCKED while the client is hiding auras. Unlike stats,
@@ -106,19 +113,11 @@ WS.STATS = {
     buffs = { label = "BUFFS", name = "Buff count", get = function() return tostring(CountBuffs()) end },   -- LOCKED passes through tostring
 
     spellhit = { label = "HIT", name = "Spell hit", get = function()
-        if GetSpellHitModifier then
-            local v = GetSpellHitModifier()
-            if v then return Pct(v) end
-        end
-        if GetCombatRatingBonus and CR_HIT_SPELL then return Pct(GetCombatRatingBonus(CR_HIT_SPELL)) end
+        return HitTotal(GetSpellHitModifier, CR_HIT_SPELL)
     end },
 
     meleehit = { label = "HIT", name = "Melee hit", get = function()
-        if GetHitModifier then
-            local v = GetHitModifier()
-            if v then return Pct(v) end
-        end
-        if GetCombatRatingBonus and CR_HIT_MELEE then return Pct(GetCombatRatingBonus(CR_HIT_MELEE)) end
+        return HitTotal(GetHitModifier, CR_HIT_MELEE)
     end },
 
     spellcrit = { label = "CRIT", name = "Spell crit (best school)", get = function()
@@ -158,6 +157,8 @@ WS.STATS = {
     end },
 
     haste = { label = "HASTE", name = "Haste", get = function()
+        -- GetHaste() reads 0 on Forever; the character sheet uses spell haste.
+        if UnitSpellHaste then return Pct(UnitSpellHaste("player")) end
         return GetHaste and Pct(GetHaste())
     end },
 
